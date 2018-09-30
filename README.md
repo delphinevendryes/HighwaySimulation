@@ -4,9 +4,7 @@
 
 ## Classes
 - Car, KalmanFilter, ParticleFilter
-
 - Highway
-
 - Message
 
 ## Simulation events

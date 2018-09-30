@@ -1,6 +1,7 @@
 
 
 from numpy import sin, cos
+from kalmanfilter import KalmanFilterCar
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
@@ -18,9 +19,9 @@ class HighWay:
         self.dt = dt
         for i in range(n_cars):
             x_0 = np.random.uniform(0, length)
-            v_0=np.random.normal(1, 0.01)
+            v_0=np.random.normal(2, 0.01)
             l_0=n_lanes
-            car = Car(id='Car'+str(i), x_0=x_0, v_0=v_0, a_0=0, l_0=l_0, n_lanes=self.n_lanes)
+            car = KalmanFilterCar(id='Car'+str(i), x_0=x_0, v_0=v_0, a_0=0, l_0=l_0, n_lanes=self.n_lanes)
             self.cars.append(car)
 
         # for car in self.cars:
@@ -50,6 +51,6 @@ class HighWay:
         """perform animation step"""
         self.step(self.dt)
         for j in range(self.n_cars):
-            self.points[j].set_data(*self.cars[j].position())
+            self.points[j].set_data(*self.cars[j].x)
         self.time_text.set_text('time = %.1f' % self.cars[0].time_elapsed)
         return self.points, self.time_text

@@ -22,6 +22,7 @@ def run_sim_once(n_cars=5, n_lanes=0, length=10, dt=1./30):
         fig = plt.figure()
         ax = fig.add_subplot(111, aspect='equal', autoscale_on=False, xlim=(-1, n_lanes + 1), ylim=(0, length))
         ax.grid()
+        ax.set_xticks(np.arange(n_lanes+1))
         points = [ax.plot([], 'o', color=[(i + 1) / n_cars, 0, 0])[0] for i in range(n_cars)]
         time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
         return fig, ax, points, time_text
@@ -35,19 +36,25 @@ def run_sim_once(n_cars=5, n_lanes=0, length=10, dt=1./30):
 
     def update_car_beliefs(messages):
         for car in highway.cars:
-            car.update_rec_distances(messages[car.id])
-            car.update_bel_distances()
-            car.update_bel_speed()
-            # print(car.rec_distances)
+            car.update_distances(messages[car.id])
+            car.filter_distances()
+            #car.update_bel_speed(dt = dt)
+
+    def update_scores():
+        for car in highway.cars:
+            for cid in car.rec_distances:
+                if cid in car.filt_distances:
+                    score[car.id] += (car.rec_distances[cid][-1] - car.filt_distances[cid][0])**2
+                    noise[car.id] += (car.rec_distances[cid][-1] - (car.x - cars_by_id[cid].x))**2
 
     def get_car_position_message(to_id):
-        messages = list()
+        mess = list()
         for from_id in car_ids:
             if from_id != to_id:
                 car_from_x = cars_by_id[from_id].x
                 car_to_x = cars_by_id[to_id].x
-                messages.append(Message(from_id=from_id, to_id=to_id, x_rel=car_to_x - car_from_x))
-        return messages
+                mess.append(Message(from_id=from_id, to_id=to_id, x_rel=car_to_x - car_from_x))
+        return mess
 
     def car_done(positions, car_id):
         # TODO: remove linear pass
@@ -62,31 +69,38 @@ def run_sim_once(n_cars=5, n_lanes=0, length=10, dt=1./30):
                 return False
         return True
 
-
     print("Starting simulation")
-
-
 
     highway = HighWay(length=length, n_lanes=n_lanes, n_cars=n_cars, dt=dt)
 
     car_ids = [car.id for car in highway.cars]
     cars_by_id = dict((car.id, car) for car in highway.cars)
 
+    score = dict()
+    noise = dict()
+
+    for car in highway.cars:
+        car.init()
+        score[car.id] = 0
+        noise[car.id] = 0
+
     # Visualization
     fig, ax, points, time_text = set_visualization()
 
-    max_round = 100
     round = 0
 
     # Begin the event loop
-    while round < max_round:
+    while True:
         print("======= Round %d ========" % round)
+        test_done = all_done([car.x for car in highway.cars])
         messages = dict() # car_id -> list of messages
+
         for c_rec in highway.cars:
             messages[c_rec.id] = get_car_position_message(to_id=c_rec.id)
             # print(messages)
 
         update_car_beliefs(messages)
+
 
         highway.step(highway.dt)
         points, time_text = animate()
@@ -94,6 +108,11 @@ def run_sim_once(n_cars=5, n_lanes=0, length=10, dt=1./30):
         plt.draw()
         plt.pause(0.01)
 
+        update_scores()
+
+        if test_done:
+            break
         round += 1
+    print(score, noise)
 
 run_sim_once()

@@ -1,6 +1,5 @@
-from .car import Car
+from .car import Car, Vector2d
 import numpy as np
-from .navigation_system import DistanceTracker
 
 
 NORMALIZATION_CONSTANT = 750
@@ -14,8 +13,8 @@ class Message:
     def compile(self):
         difference = self.source.motion.position.subtract(self.target.motion.position)
         distance, theta = difference.to_polar()
-        distance += np.random.normal(0, distance**2 / NORMALIZATION_CONSTANT)
-        return distance, theta
+        # distance += np.random.normal(0, distance**2 / NORMALIZATION_CONSTANT)
+        return Vector2d.from_polar(distance, theta)
 
     def __repr__(self):
         return "Message(from_id = %s, to_id=%s)" % (

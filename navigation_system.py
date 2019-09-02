@@ -7,7 +7,20 @@ from .car import Vector2d
 from .message import Message
 
 
-LANE_WIDTH = 1
+class DistanceTracker(NamedTuple):
+    received_positions: List[Vector2d]
+    filtered_distances: List[Vector2d]
+    filtered_speed: List[Vector2d]
+
+    def update(self, position: Vector2d, dt: float):
+        self.received_positions.append(position)
+        # TODO implement filtering
+        self.filtered_distances.append(position)
+        # TODO implement filtering
+        if len(self.received_positions) > 1:
+            previous_position = self.received_positions[-1]
+            speed = position.subtract(previous_position).divide(dt)
+            self.filtered_speed.append(speed)
 
 
 def build_empty_car_information():
@@ -16,21 +29,6 @@ def build_empty_car_information():
         filtered_distances=[],
         filtered_speed=[],
     )
-
-
-class DistanceTracker(NamedTuple):
-    received_positions: List[Vector2d]
-    filtered_distances: List[Vector2d]
-    filtered_speed: List[Vector2d]
-
-    def update(self, position: Vector2d, dt: float):
-        previous_position = self.received_positions[-1]
-        self.received_positions.append(position)
-        # TODO implement filtering
-        self.filtered_distances.append(position)
-        # TODO implement filtering
-        speed = position.subtract(previous_position).divide(dt)
-        self.filtered_speed.append(speed)
 
 
 class InformationManager(NamedTuple):
@@ -55,21 +53,35 @@ class NavigationSystem:
         self.information_manager = information_manager
         self.time_elapsed = 0
 
-    def change_lane(self, right: bool):
-        self.car.motion.position.x += right * LANE_WIDTH
-
-    def step(self, dt):
-        """execute one time step of length dt and update state"""
-        acceleration, _ = self.car.motion.position.acceleration
-        self.car.motion.position.acceleration = np.random.normal(acceleration, 0.1), 0
-
-        if np.random.uniform(0, 1) < 0.9:
-            pass
+    def change_lane(self, right: bool, lane_width):
+        x, y = self.car.cartesian_position()
+        if right:
+            self.car.motion.position.set_x(x + lane_width)
         else:
-            self.change_lane(right=False)
-            self.car.motion.position.acceleration += 3
+            self.car.motion.position.set_x(x - lane_width)
 
-        self.car.motion.speed += self.car.motion.acceleration.x * dt
-        self.car.motion.speed = max(self.car.motion.speed.x, 20)
-        self.car.motion.position += self.car.motion.speed * dt
+    def step(self, dt: float, lane_width: float, n_lanes: int):
+        """Execute one time step of length dt and update state."""
+        _, acceleration_y = self.car.motion.acceleration.to_cartesian()
+        _, speed_y = self.car.motion.speed.to_cartesian()
+        _, position_y = self.car.cartesian_position()
+
+        self.car.motion.acceleration.set_y(np.random.normal(acceleration_y, 0.1))
+
+        u = np.random.uniform(0, 1)
+        if u > 0.99:
+            if not self.car.is_in_rightmost_lane(n_lanes, lane_width):
+                self.change_lane(right=True, lane_width=lane_width)
+                self.car.motion.acceleration.set_y(acceleration_y - 3)
+        elif u < 0.01:
+            if not self.car.is_in_leftmost_lane():
+                self.change_lane(right=False, lane_width=lane_width)
+                self.car.motion.acceleration.set_y(acceleration_y + 3)
+
+        speed_y += acceleration_y * dt
+        speed_y = max(speed_y, 20)
+        self.car.motion.speed.set_y(speed_y)
+
+        position_y += speed_y * dt
+        self.car.set_cartesian_position(y=position_y)
         self.time_elapsed += dt

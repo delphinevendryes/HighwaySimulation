@@ -1,5 +1,6 @@
 from cars import Car
 
+
 class KalmanFilterCar(Car):
     def init(self):
         self.sigmav = 0.1

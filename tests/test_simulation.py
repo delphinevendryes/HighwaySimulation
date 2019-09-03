@@ -3,8 +3,8 @@ import unittest
 
 HIGHWAY_CONFIG = {
     "n_lanes": 2,
-    "length": 500,
-    "speed_limit": 5,
+    "length": 200,
+    "speed_limit": 20,
     "n_cars": 20,
     "delta": 1./30,
     "lane_width": 1,

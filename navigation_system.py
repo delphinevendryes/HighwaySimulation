@@ -1,26 +1,10 @@
+from HighwaySimulation.distance_tracker import DistanceTracker
 from .car import Car
 
 import numpy as np
 
-from typing import List, NamedTuple, Dict, Tuple
-from .car import Vector2d
+from typing import List, NamedTuple, Dict
 from .message import Message
-
-
-class DistanceTracker(NamedTuple):
-    received_positions: List[Vector2d]
-    filtered_distances: List[Vector2d]
-    filtered_speed: List[Vector2d]
-
-    def update(self, position: Vector2d, dt: float):
-        self.received_positions.append(position)
-        # TODO implement filtering
-        self.filtered_distances.append(position)
-        # TODO implement filtering
-        if len(self.received_positions) > 1:
-            previous_position = self.received_positions[-1]
-            speed = position.subtract(previous_position).divide(dt)
-            self.filtered_speed.append(speed)
 
 
 def build_empty_car_information():
@@ -54,17 +38,17 @@ class NavigationSystem:
         self.time_elapsed = 0
 
     def change_lane(self, right: bool, lane_width):
-        x, y = self.car.cartesian_position()
+        x, y = self.car.get_cartesian_position()
         if right:
-            self.car.motion.position.set_x(x + lane_width)
+            self.car.set_cartesian_position(x=x + lane_width)
         else:
-            self.car.motion.position.set_x(x - lane_width)
+            self.car.set_cartesian_position(x=x - lane_width)
 
-    def step(self, dt: float, lane_width: float, n_lanes: int):
+    def step(self, delta_t: float, lane_width: float, n_lanes: int):
         """Execute one time step of length dt and update state."""
         _, acceleration_y = self.car.motion.acceleration.to_cartesian()
         _, speed_y = self.car.motion.speed.to_cartesian()
-        _, position_y = self.car.cartesian_position()
+        _, position_y = self.car.get_cartesian_position()
 
         self.car.motion.acceleration.set_y(np.random.normal(acceleration_y, 0.1))
 
@@ -78,10 +62,10 @@ class NavigationSystem:
                 self.change_lane(right=False, lane_width=lane_width)
                 self.car.motion.acceleration.set_y(acceleration_y + 3)
 
-        speed_y += acceleration_y * dt
+        speed_y += acceleration_y * delta_t
         speed_y = max(speed_y, 20)
         self.car.motion.speed.set_y(speed_y)
 
-        position_y += speed_y * dt
+        position_y += speed_y * delta_t
         self.car.set_cartesian_position(y=position_y)
-        self.time_elapsed += dt
+        self.time_elapsed += delta_t

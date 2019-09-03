@@ -3,7 +3,12 @@ import numpy as np
 from typing import NamedTuple, Tuple, Optional
 
 
-def validate_angle(theta):
+def _project_position_on_closest_inferior_lane(position, lane_width):
+    x, y = position.to_cartesian()
+    position.set_x(np.floor(x / lane_width) * lane_width)
+
+
+def _validate_angle(theta):
     if not - np.pi < theta <= np.pi:
         raise ValueError(
             "theta must be in -pi, pi found {}".format(theta)
@@ -16,7 +21,18 @@ class Vector2d:
         self.y = y
 
     def __repr__(self):
-        return "x={}, y={}".format(self.x, self.y)
+        return "(x={}, y={})".format(self.x, self.y)
+
+    def to_polar(self):
+        r = self._get_distance_to_origin()
+        theta = self._get_angle()
+        return r, theta
+
+    def subtract(self, vector: "Vector2d"):
+        return Vector2d(self.x - vector.x, self.y - vector.y)
+
+    def divide(self, t: float):
+        return Vector2d(self.x / t, self.y / t)
 
     def to_cartesian(self):
         return self.x, self.y
@@ -33,21 +49,21 @@ class Vector2d:
         y = distance * np.sin(theta)
         return cls(x, y)
 
-    def is_in_quadrant_2(self):
+    def _is_in_quadrant_2(self):
         return (self.x < 0) & (self.y >= 0)
 
-    def is_in_quadrant_3(self):
+    def _is_in_quadrant_3(self):
         return (self.x < 0) & (self.y < 0)
 
-    def get_distance_to_origin(self):
+    def _get_distance_to_origin(self):
         return np.sqrt(self.x ** 2 + self.y ** 2)
 
-    def is_on_y_axis(self):
+    def _is_on_y_axis(self):
         return self.x == 0
 
-    def get_angle(self):
+    def _get_angle(self):
         theta = 0
-        if self.is_on_y_axis():
+        if self._is_on_y_axis():
             if self.y > 0:
                 theta = np.pi / 2
             elif self.y < 0:
@@ -56,25 +72,14 @@ class Vector2d:
                 theta = 0
         else:
             theta = np.arctan(self.y / self.x)
-            if self.is_in_quadrant_2():
+            if self._is_in_quadrant_2():
                 theta += np.pi
-            if self.is_in_quadrant_3():
+            if self._is_in_quadrant_3():
                 theta -= np.pi
 
-        validate_angle(theta)
+        _validate_angle(theta)
 
         return theta
-
-    def to_polar(self):
-        r = self.get_distance_to_origin()
-        theta = self.get_angle()
-        return r, theta
-
-    def subtract(self, vector: "Vector2d"):
-        return Vector2d(self.x - vector.x, self.y - vector.y)
-
-    def divide(self, t: float):
-        return Vector2d(self.x / t, self.y / t)
 
 
 def initialize_random_vector_2d(range_x: Tuple[float, float], range_y: Tuple[float, float]) -> Vector2d:
@@ -85,24 +90,8 @@ def initialize_random_vector_2d(range_x: Tuple[float, float], range_y: Tuple[flo
     return Vector2d(x, y)
 
 
-def initialize_random_motion_descriptor(position_range, speed_range, acceleration_range=(0, 0)):
-    position = initialize_random_vector_2d(range_x=(0, 0), range_y=position_range)
-    speed = initialize_random_vector_2d(range_x=(0, 0), range_y=speed_range)
-    acceleration = initialize_random_vector_2d(range_x=(0, 0), range_y=acceleration_range)
-
-    return MotionDescriptor(
-        position,
-        speed,
-        acceleration,
-    )
-
-
-def project_position_on_closest_inferior_lane(position, lane_width):
-    x, y = position.to_cartesian()
-    position.set_x(np.floor(x / lane_width) * lane_width)
-
-
 def initialize_random_motion_descriptor_from_highway_config(highway_config):
+    """Initialize the motion descriptors from highway specifications."""
     width = highway_config["n_lanes"]
     length = highway_config["length"]
     speed_limit = highway_config["speed_limit"]
@@ -116,7 +105,7 @@ def initialize_random_motion_descriptor_from_highway_config(highway_config):
     speed = initialize_random_vector_2d(range_x=(0, 0), range_y=speed_range_y)
     acceleration = initialize_random_vector_2d(range_x=(0, 0), range_y=(0, 0))
 
-    project_position_on_closest_inferior_lane(position, lane_width)
+    _project_position_on_closest_inferior_lane(position, lane_width)
 
     return MotionDescriptor(
         position,
@@ -126,17 +115,22 @@ def initialize_random_motion_descriptor_from_highway_config(highway_config):
 
 
 class MotionDescriptor(NamedTuple):
+    """A motion descriptor holds on to three vectors in 2 dimensions.
+
+    One vector describes the position, one vector describes the speed, one vector describes the acceleration.
+    """
     position: Vector2d
     speed: Vector2d
     acceleration: Vector2d
 
 
 class Car(NamedTuple):
-    """Car Class."""
+    """A car holds on to a unique id and an instance of a motion descriptor."""
     car_id: str
     motion: MotionDescriptor
 
     def set_cartesian_position(self, *, x: Optional[float] = None, y: Optional[float] = None):
+        """Update the position of car with cartesian coordinates."""
         if x is not None and y is not None:
             self.motion.position.set_x(x)
             self.motion.position.set_y(y)
@@ -147,15 +141,26 @@ class Car(NamedTuple):
         else:
             raise ValueError("Cannot set car position coordinates to None.")
 
-    def cartesian_position(self):
+    def get_cartesian_position(self):
+        """Get cartesian position."""
         return self.motion.position.to_cartesian()
 
+    def get_cartesian_speed(self):
+        """Get cartesian speed."""
+        return self.motion.speed.to_cartesian()
+
+    def get_cartesian_acceleration(self):
+        """Get cartesian acceleration."""
+        return self.motion.acceleration.to_cartesian()
+
     def is_in_leftmost_lane(self):
-        x, y = self.cartesian_position()
+        """Determine if car is in leftmost lane."""
+        x, y = self.get_cartesian_position()
         return x == 0
 
     def is_in_rightmost_lane(self, n_lanes, lane_width):
-        x, y = self.cartesian_position()
+        """Determine if car is in rightmost lane."""
+        x, y = self.get_cartesian_position()
         return x == (n_lanes - 1) * lane_width
 
     def __repr__(self):

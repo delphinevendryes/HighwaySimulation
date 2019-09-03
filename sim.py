@@ -52,24 +52,13 @@ def run_sim_once(highway_config):
             time_text.set_text('time = %.1f' % time)
         return points, time_text
 
-    # def update_scores():
-    #     for car in highway.cars:
-    #         for cid in car.info.received_positions:
-    #             if cid in car.info.filtered_distances:
-    #                 true_r, _= highway_location_to_polar((car.x - cars_by_id[cid].x), (car.lane - cars_by_id[cid].lane))
-    #                 score[car.id] += (car.info.filtered_distances[cid][0] - true_r)**2
-    #                 noise[car.id] += (car.info.received_positions[cid][0] - true_r)**2
-
     print("Starting simulation")
-
     highway = HighWay(length=highway_length, lane_number=n_lanes, lane_width=lane_width)
 
     motions = [
         initialize_random_motion_descriptor_from_highway_config(highway_config) for _ in range(n_cars)
     ]
     cars = [Car(car_id=str(uuid.uuid4()), motion=motion) for motion in motions]
-
-    debug_car_id = cars[0].car_id
 
     navigation_systems = [
         NavigationSystem(
@@ -83,12 +72,6 @@ def run_sim_once(highway_config):
         navigation_systems=navigation_systems,
         delta=dt,
     )
-    score = dict()
-    noise = dict()
-
-    # for car in highway.cars:
-    #     score[car.id] = 0
-    #     noise[car.id] = 0
 
     # Visualization
     fig, ax, points, time_text = init_visualization(n_lanes, n_cars, highway_length)
@@ -111,8 +94,6 @@ def run_sim_once(highway_config):
                 message = Message(source_car, target_car)
                 messages.append(message)
             target.information_manager.update_positions(messages, dt)
-            if target.car.car_id == debug_car_id:
-                print(target.information_manager.distance_trackers)
 
         highway_navigation_system.step(dt)
         points, time_text = animate(time_elapsed)

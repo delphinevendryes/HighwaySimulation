@@ -4,8 +4,8 @@ import numpy as np
 DELTA_T = 1/30
 
 SIGMA_W = np.zeros((3, 3))
-SIGMA_V = np.diag(0.1, 3)
-PSI = np.diag(1, 3)
+SIGMA_V = np.diag([0.1 for _ in range(3)])
+PSI = np.diag([1 for _ in range(3)])
 PHI = np.matrix(
             [
                 [1, DELTA_T, 0.5 * DELTA_T ** 2],
@@ -41,11 +41,14 @@ class KalmanFilter(Filter):
         old_mean, old_variance = old_parameters
 
         psi_transpose = np.transpose(psi)
+        # print(new_observation - old_mean)
+
+        kalman_factor = old_variance * psi_transpose * np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v)
 
         temp_mean = (
-                old_mean + (old_variance * psi_transpose) * np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v) * (new_observation - psi * old_mean)
+                old_mean + np.matmul(kalman_factor, new_observation - np.matmul(psi, old_mean))
         )
-        return phi * temp_mean
+        return np.matmul(phi, temp_mean)
 
     def _compute_new_variance(self, old_parameters):
         old_mean, old_variance = old_parameters
@@ -56,11 +59,14 @@ class KalmanFilter(Filter):
         sigma_w = self.sigma_w
 
         psi_transpose = np.transpose(psi)
+        pinv = np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v)
+
+        kalman_factor = old_variance * psi_transpose * pinv
 
         tmp_variance = (
-                old_variance - old_variance * psi_transpose * np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v) * psi * old_variance
+                old_variance - np.matmul(np.matmul(kalman_factor, psi), old_variance)
         )
-        return phi * tmp_variance * np.transpose(phi) + sigma_w
+        return np.matmul(np.matmul(phi, tmp_variance), np.transpose(phi)) + sigma_w
 
     def recursion_step(self, new_observation, old_parameters):
         new_mean = self._compute_new_mean(new_observation, old_parameters)
@@ -69,8 +75,8 @@ class KalmanFilter(Filter):
 
     def filter(self, time_series):
         filtered_series = []
-        mean = 0
-        variance = 0
+        mean = time_series[0]
+        variance = np.zeros((time_series[0].shape[0], time_series[0].shape[0]))
         parameters = mean, variance
         for time_step in time_series:
             filtered_series.append(parameters)

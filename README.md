@@ -16,7 +16,15 @@ Initially cars are randomly scattered on the road, and the density of cars is un
 ## Denoising sensor information
 
 - Kalman filters
+Let's run a simulation and pick 2 cars. One will be the source, the other one will be the target for this experiment.
+After the simulation is done, plot the true relative distance between the cars against time, as well as the noisy distances (messages sent from the source to the target), and the filtered distances (inferred distance based on noisy observations).
 ![Filtered distances](figures/distance_between_two_cars.png)
+
+We also get the following mean squared errors:
+With filtering: 0.24. Without filtering: 1.33.
+
+Interestingly, the fact that the variance of the noise varies in r**2 can lead to biased results.
+
 - Particle filters
 not implemented yet
 

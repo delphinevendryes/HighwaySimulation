@@ -7,12 +7,8 @@ from typing import List, NamedTuple, Dict
 from .message import Message
 
 
-def build_empty_car_information():
-    return DistanceTracker(
-        received_positions=[],
-        filtered_distances=[],
-        filtered_speed=[],
-    )
+def build_simple_distance_tracker():
+    return DistanceTracker(distance_filter=None)
 
 
 class InformationManager(NamedTuple):
@@ -21,7 +17,7 @@ class InformationManager(NamedTuple):
     def update_positions(self, received_messages: List[Message], dt: float):
         for message in received_messages:
             source_id = message.source.car_id
-            tracker = self.distance_trackers.get(source_id, build_empty_car_information())
+            tracker = self.distance_trackers.get(source_id, build_simple_distance_tracker())
             tracker.update(message.compile(), dt)
             self.distance_trackers.update({source_id: tracker})
 

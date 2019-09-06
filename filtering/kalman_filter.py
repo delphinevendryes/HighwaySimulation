@@ -1,4 +1,5 @@
-from .filter import Filter
+from .filter import Filter, FilteredInfo
+from typing import Tuple, List
 import numpy as np
 
 DELTA_T = 1/30
@@ -13,6 +14,17 @@ PHI = np.matrix(
                 [0, 0, 1]
             ]
         )
+
+
+class KalmanFilteredInfo(FilteredInfo):
+    def __init__(self, normal_parameters: Tuple[np.array, np.array]):
+        self._parameters = normal_parameters
+
+    def get_normal_parameters(self) -> Tuple[np.array, np.array]:
+        return self._parameters
+
+    def compile(self) -> np.array:
+        return self._parameters[0]
 
 
 class KalmanFilter(Filter):
@@ -41,7 +53,6 @@ class KalmanFilter(Filter):
         old_mean, old_variance = old_parameters
 
         psi_transpose = np.transpose(psi)
-        # print(new_observation - old_mean)
 
         kalman_factor = old_variance * psi_transpose * np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v)
 
@@ -68,17 +79,19 @@ class KalmanFilter(Filter):
         )
         return np.matmul(np.matmul(phi, tmp_variance), np.transpose(phi)) + sigma_w
 
-    def recursion_step(self, new_observation, old_parameters):
-        new_mean = self._compute_new_mean(new_observation, old_parameters)
-        new_variance = self._compute_new_variance(old_parameters)
-        return new_mean, new_variance
+    def do_recursion_step(self, new_observation: np.array, filtered_info: KalmanFilteredInfo):
+        parameters = filtered_info.get_normal_parameters()
+        new_mean = self._compute_new_mean(new_observation, parameters)
+        new_variance = self._compute_new_variance(parameters)
 
-    def filter(self, time_series):
+        return KalmanFilteredInfo((new_mean, new_variance))
+
+    def filter(self, time_series) -> List[KalmanFilteredInfo]:
         filtered_series = []
         mean = time_series[0]
         variance = np.zeros((time_series[0].shape[0], time_series[0].shape[0]))
-        parameters = mean, variance
+        parameters = KalmanFilteredInfo((mean, variance))
         for time_step in time_series:
             filtered_series.append(parameters)
-            parameters = self.recursion_step(time_step, parameters)
+            parameters = self.do_recursion_step(time_step, parameters)
         return filtered_series

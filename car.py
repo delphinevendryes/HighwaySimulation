@@ -124,9 +124,17 @@ class MotionDescriptor(NamedTuple):
     acceleration: Vector2d
 
 
+class CarId(NamedTuple):
+    car_id: str
+
+    @property
+    def car_id(self):
+        return self.car_id
+
+
 class Car(NamedTuple):
     """A car holds on to a unique id and an instance of a motion descriptor."""
-    car_id: str
+    car_id: CarId
     motion: MotionDescriptor
 
     def set_cartesian_position(self, *, x: Optional[float] = None, y: Optional[float] = None):

@@ -1,7 +1,10 @@
+from .analysis import get_analysis, plot_analysis
 from .highway import HighWay, HighwayNavigationSystem
 from .message import Message
 from .navigation_system import NavigationSystem, build_empty_information_manager
-from .car import Car, initialize_random_motion_descriptor_from_highway_config
+from .car import Car, CarId, initialize_random_motion_descriptor_from_highway_config
+from .history import History, get_round_from_highway_navigation_systems
+
 import matplotlib.pyplot as plt
 import numpy as np
 import uuid
@@ -53,12 +56,14 @@ def run_sim_once(highway_config):
         return points, time_text
 
     print("Starting simulation")
+    history = History()
+
     highway = HighWay(length=highway_length, lane_number=n_lanes, lane_width=lane_width)
 
     motions = [
         initialize_random_motion_descriptor_from_highway_config(highway_config) for _ in range(n_cars)
     ]
-    cars = [Car(car_id=str(uuid.uuid4()), motion=motion) for motion in motions]
+    cars = [Car(car_id=CarId(str(uuid.uuid4())), motion=motion) for motion in motions]
 
     navigation_systems = [
         NavigationSystem(
@@ -74,15 +79,14 @@ def run_sim_once(highway_config):
     )
 
     # Visualization
-    fig, ax, points, time_text = init_visualization(n_lanes, n_cars, highway_length)
+    # fig, ax, points, time_text = init_visualization(n_lanes, n_cars, highway_length)
 
-    round = 0
+    n_round = 0
     time_elapsed = 0
-    plot_distance = np.zeros(500)
 
     # Begin the event loop
     while True:
-        print("======= Round %d ========" % round)
+        print("======= Round %d ========" % n_round)
         if highway_navigation_system.is_done():
             break
 
@@ -96,17 +100,23 @@ def run_sim_once(highway_config):
             target.information_manager.update_positions(messages, dt)
 
         highway_navigation_system.step(dt)
-        points, time_text = animate(time_elapsed)
+        new_round = get_round_from_highway_navigation_systems(highway_navigation_system)
+        history.update(new_round)
+        # points, time_text = animate(time_elapsed)
 
-        plt.draw()
-        plt.pause(0.01)
+        # plt.draw()
+        # plt.pause(0.01)
 
         # update_scores()
-        round += 1
-        time_elapsed = round * dt
+        n_round += 1
+        time_elapsed = n_round * dt
+
+    true_distances, noisy_distances, filtered_distances = get_analysis(
+        source=navigation_systems[0], target=navigation_systems[1], history=history
+    )
+    plot_analysis(true_distances, noisy_distances, filtered_distances)
 
     print("======= SUMMARY STATS ========")
-    print('Filtering', score)
-    print('Noise', noise)
-    plt.plot(plot_distance[:round])
-    plt.show()
+    print('Filtering', np.mean((filtered_distances - true_distances)**2))
+    print('Noise', np.mean((noisy_distances - true_distances)**2))
+

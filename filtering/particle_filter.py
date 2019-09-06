@@ -1,6 +1,7 @@
-from cars import Car
+from .filter import Filter
 
-class ParticleFilter(Car):
 
-    def init(self):
-        pass
+class ParticleFilter(Filter):
+
+    def filter(self, time_series):
+        return

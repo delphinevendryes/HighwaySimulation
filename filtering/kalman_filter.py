@@ -1,11 +1,12 @@
-from .filter import Filter
+from .filter import Filter, FilteredInfo
+from typing import Tuple, List
 import numpy as np
 
 DELTA_T = 1/30
 
 SIGMA_W = np.zeros((3, 3))
-SIGMA_V = np.diag(0.1, 3)
-PSI = np.diag(1, 3)
+SIGMA_V = np.diag([0.1 for _ in range(3)])
+PSI = np.diag([1 for _ in range(3)])
 PHI = np.matrix(
             [
                 [1, DELTA_T, 0.5 * DELTA_T ** 2],
@@ -13,6 +14,17 @@ PHI = np.matrix(
                 [0, 0, 1]
             ]
         )
+
+
+class KalmanFilteredInfo(FilteredInfo):
+    def __init__(self, normal_parameters: Tuple[np.array, np.array]):
+        self._parameters = normal_parameters
+
+    def get_normal_parameters(self) -> Tuple[np.array, np.array]:
+        return self._parameters
+
+    def compile(self) -> np.array:
+        return self._parameters[0]
 
 
 class KalmanFilter(Filter):
@@ -42,10 +54,12 @@ class KalmanFilter(Filter):
 
         psi_transpose = np.transpose(psi)
 
+        kalman_factor = old_variance * psi_transpose * np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v)
+
         temp_mean = (
-                old_mean + (old_variance * psi_transpose) * np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v) * (new_observation - psi * old_mean)
+                old_mean + np.matmul(kalman_factor, new_observation - np.matmul(psi, old_mean))
         )
-        return phi * temp_mean
+        return np.matmul(phi, temp_mean)
 
     def _compute_new_variance(self, old_parameters):
         old_mean, old_variance = old_parameters
@@ -56,23 +70,30 @@ class KalmanFilter(Filter):
         sigma_w = self.sigma_w
 
         psi_transpose = np.transpose(psi)
+        pinv = np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v)
+
+        kalman_factor = old_variance * psi_transpose * pinv
 
         tmp_variance = (
-                old_variance - old_variance * psi_transpose * np.linalg.pinv(psi * old_variance * psi_transpose + sigma_v) * psi * old_variance
+                old_variance - np.matmul(np.matmul(kalman_factor, psi), old_variance)
         )
-        return phi * tmp_variance * np.transpose(phi) + sigma_w
+        return np.matmul(np.matmul(phi, tmp_variance), np.transpose(phi)) + sigma_w
 
-    def recursion_step(self, new_observation, old_parameters):
-        new_mean = self._compute_new_mean(new_observation, old_parameters)
-        new_variance = self._compute_new_variance(old_parameters)
-        return new_mean, new_variance
+    def do_recursion_step(self, new_observation: np.array, filtered_info: KalmanFilteredInfo):
+        if filtered_info is None:
+            return KalmanFilteredInfo((new_observation, self.sigma_w))
+        parameters = filtered_info.get_normal_parameters()
+        new_mean = self._compute_new_mean(new_observation, parameters)
+        new_variance = self._compute_new_variance(parameters)
 
-    def filter(self, time_series):
+        return KalmanFilteredInfo((new_mean, new_variance))
+
+    def filter(self, time_series) -> List[KalmanFilteredInfo]:
         filtered_series = []
-        mean = 0
-        variance = 0
-        parameters = mean, variance
+        mean = time_series[0]
+        variance = np.zeros((time_series[0].shape[0], time_series[0].shape[0]))
+        parameters = KalmanFilteredInfo((mean, variance))
         for time_step in time_series:
             filtered_series.append(parameters)
-            parameters = self.recursion_step(time_step, parameters)
+            parameters = self.do_recursion_step(time_step, parameters)
         return filtered_series

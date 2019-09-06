@@ -1,27 +1,30 @@
-from HighwaySimulation.distance_tracker import DistanceTracker
-from .car import Car
+from highway_simulation.distance_tracker import DistanceTracker
+from .car import Car, CarId
 
 import numpy as np
 
 from typing import List, NamedTuple, Dict
 from .message import Message
+from .filtering.kalman_filter import KalmanFilter
 
 
-def build_empty_car_information():
-    return DistanceTracker(
-        received_positions=[],
-        filtered_distances=[],
-        filtered_speed=[],
-    )
+def build_simple_distance_tracker():
+    sigma_w = np.identity(3) * 0.1
+    sigma_v = np.identity(3) * 1
+
+    psi = np.identity(3)
+    phi = np.identity(3)
+    kalman_filter = KalmanFilter(phi, psi, sigma_v, sigma_w)
+    return DistanceTracker(distance_filter=kalman_filter)
 
 
 class InformationManager(NamedTuple):
-    distance_trackers: Dict[str, DistanceTracker]
+    distance_trackers: Dict[CarId, DistanceTracker]
 
     def update_positions(self, received_messages: List[Message], dt: float):
         for message in received_messages:
             source_id = message.source.car_id
-            tracker = self.distance_trackers.get(source_id, build_empty_car_information())
+            tracker = self.distance_trackers.get(source_id, build_simple_distance_tracker())
             tracker.update(message.compile(), dt)
             self.distance_trackers.update({source_id: tracker})
 

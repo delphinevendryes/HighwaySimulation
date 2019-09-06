@@ -80,6 +80,8 @@ class KalmanFilter(Filter):
         return np.matmul(np.matmul(phi, tmp_variance), np.transpose(phi)) + sigma_w
 
     def do_recursion_step(self, new_observation: np.array, filtered_info: KalmanFilteredInfo):
+        if filtered_info is None:
+            return KalmanFilteredInfo((new_observation, self.sigma_w))
         parameters = filtered_info.get_normal_parameters()
         new_mean = self._compute_new_mean(new_observation, parameters)
         new_variance = self._compute_new_variance(parameters)

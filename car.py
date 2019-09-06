@@ -23,6 +23,11 @@ class Vector2d:
     def __repr__(self):
         return "(x={}, y={})".format(self.x, self.y)
 
+    def copy(self):
+        x = self.x
+        y = self.y
+        return Vector2d(x, y)
+
     def to_polar(self):
         r = self._get_distance_to_origin()
         theta = self._get_angle()
@@ -122,6 +127,9 @@ class MotionDescriptor(NamedTuple):
     position: Vector2d
     speed: Vector2d
     acceleration: Vector2d
+
+    def copy(self):
+        return MotionDescriptor(self.position.copy(), self.speed.copy(), self.acceleration.copy())
 
 
 class CarId(NamedTuple):

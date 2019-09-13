@@ -22,7 +22,8 @@ After the simulation is done, plot the true relative distance between the cars a
 
 We also get the following mean squared errors for a simulation with 20 cars (20 * 19 ordered pairs of cars):
 
-Filtered MSE mean: 10.6; Filtered MSE standard deviation: 28.2
+*Filtered MSE mean:* 10.6; Filtered MSE standard deviation: 28.2
+
 Noisy MSE mean: 60.0; Noisy MSE standard deviation: 163.4
 
 Interestingly, the fact that the variance of the noise varies in <a href="https://www.codecogs.com/eqnedit.php?latex=r^{2}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?r^{2}" title="r^{2}" /></a> can lead to biased results.

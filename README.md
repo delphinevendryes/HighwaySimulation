@@ -20,8 +20,10 @@ Let's run a simulation and pick 2 cars. One will be the source, the other one wi
 After the simulation is done, plot the true relative distance between the cars against time, as well as the noisy distances (messages sent from the source to the target), and the filtered distances (inferred distance based on noisy observations).
 ![Filtered distances](figures/distance_between_two_cars.png)
 
-We also get the following mean squared errors:
-With filtering: 0.24. Without filtering: 1.33.
+We also get the following mean squared errors for a simulation with 20 cars (20 * 19 ordered pairs of cars):
+
+Filtered MSE mean: 10.6; Filtered MSE standard deviation: 28.2
+Noisy MSE mean: 60.0; Noisy MSE standard deviation: 163.4
 
 Interestingly, the fact that the variance of the noise varies in <a href="https://www.codecogs.com/eqnedit.php?latex=r^{2}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?r^{2}" title="r^{2}" /></a> can lead to biased results.
 

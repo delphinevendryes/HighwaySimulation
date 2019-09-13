@@ -9,14 +9,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uuid
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 
 def get_color(i: int, n: int) -> List[float]:
     return [(i + 1) / n, 0, 0]
 
 
-def init_visualization(n_lanes: int, n_cars: int, highway_length: float):
+def init_visualization(highway_config: Dict[str, Any]):
+    n_cars = highway_config["n_cars"]
+    n_lanes = highway_config["n_lanes"]
+    highway_length = highway_config["length"]
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
@@ -33,24 +36,12 @@ def init_visualization(n_lanes: int, n_cars: int, highway_length: float):
     return fig, ax, car_points, time_str
 
 
-def run_sim_once(highway_config, visualize: Optional[bool] = False):
+def initialize_system(highway_config):
     n_cars = highway_config["n_cars"]
     n_lanes = highway_config["n_lanes"]
     highway_length = highway_config["length"]
     dt = highway_config["delta"]
     lane_width = highway_config["lane_width"]
-
-    def animate(time: float):
-        """Perform animation step"""
-        for i_car, navigation_system in enumerate(highway_navigation_system.navigation_systems):
-            position = navigation_system.car.motion.position.to_cartesian()
-            points[i_car].set_data(*position)
-            time_text.set_text('time = %.1f' % time)
-        return points, time_text
-
-    print("Starting simulation")
-    history = History()
-
     highway = HighWay(length=highway_length, lane_number=n_lanes, lane_width=lane_width)
 
     motions = [
@@ -70,10 +61,27 @@ def run_sim_once(highway_config, visualize: Optional[bool] = False):
         navigation_systems=navigation_systems,
         delta=dt,
     )
+    return highway_navigation_system
+
+
+def run_sim_once(highway_config: Dict[str, Any], visualize: Optional[bool] = False) -> None:
+    delta_t = highway_config["delta"]
+
+    def animate(time: float):
+        """Perform animation step"""
+        for i_car, navigation_system in enumerate(highway_navigation_system.navigation_systems):
+            position = navigation_system.car.motion.position.to_cartesian()
+            points[i_car].set_data(*position)
+            time_text.set_text('time = %.1f' % time)
+        return points, time_text
+
+    print("Starting simulation")
+    history = History()
+    highway_navigation_system = initialize_system(highway_config)
 
     # Visualization
     if visualize:
-        fig, ax, points, time_text = init_visualization(n_lanes, n_cars, highway_length)
+        fig, ax, points, time_text = init_visualization(highway_config)
 
     n_round = 0
     time_elapsed = 0
@@ -91,27 +99,41 @@ def run_sim_once(highway_config, visualize: Optional[bool] = False):
                 source_car = source.car
                 message = Message(source_car, target_car)
                 messages.append(message)
-            target.information_manager.update_positions(messages, dt)
+            target.information_manager.update_positions(messages, delta_t)
 
-        highway_navigation_system.step(dt)
+        highway_navigation_system.step(delta_t)
         new_round = get_round_from_highway_navigation_systems(highway_navigation_system)
         history.update(new_round)
 
         if visualize:
             points, time_text = animate(time_elapsed)
             plt.draw()
-            plt.pause(dt)
+            plt.pause(delta_t)
 
-        # update_scores()
         n_round += 1
-        time_elapsed = n_round * dt
+        time_elapsed = n_round * delta_t
 
-    true_distances, noisy_distances, filtered_distances = get_analysis(
-        source=navigation_systems[0], target=navigation_systems[1], history=history
-    )
-    plot_analysis(true_distances, noisy_distances, filtered_distances)
+    navigation_systems = highway_navigation_system.navigation_systems
+
+    distances = []
+    for first_navigation_system in navigation_systems:
+        for second_navigation_system in navigation_systems:
+            if first_navigation_system.car.car_id != second_navigation_system.car.car_id:
+                true_distances, noisy_distances, filtered_distances = get_analysis(
+                    source=first_navigation_system, target=second_navigation_system, history=history
+                )
+                distances.append({
+                    "true": true_distances,
+                    "noisy": noisy_distances,
+                    "filtered": filtered_distances,
+                })
+
+    distance_to_plot = np.random.choice(distances)
+    plot_analysis(distance_to_plot["true"], distance_to_plot["noisy"], distance_to_plot["filtered"])
 
     print("======= SUMMARY STATS ========")
-    print('Filtering', np.mean((filtered_distances - true_distances)**2))
-    print('Noise', np.mean((noisy_distances - true_distances)**2))
+    filtered_mse = [np.mean((distance["filtered"] - distance["true"])**2) for distance in distances]
+    noisy_mse = [np.mean((distance["noisy"] - distance["true"])**2) for distance in distances]
+    print('Filtering', np.mean(filtered_mse), np.std(filtered_mse))
+    print('Noise', np.mean(noisy_mse), np.std(noisy_mse))
 

@@ -11,7 +11,7 @@ def _project_position_on_closest_inferior_lane(position, lane_width):
 def _validate_angle(theta):
     if not - np.pi < theta <= np.pi:
         raise ValueError(
-            "theta must be in -pi, pi found {}".format(theta)
+            "The angle theta must be in -pi, pi found {}".format(theta)
         )
 
 
@@ -134,10 +134,6 @@ class MotionDescriptor(NamedTuple):
 
 class CarId(NamedTuple):
     car_id: str
-
-    @property
-    def car_id(self):
-        return self.car_id
 
 
 class Car(NamedTuple):

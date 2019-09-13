@@ -1,7 +1,7 @@
 from typing import List
 
 from .car import Vector2d
-from .filtering.filter import FilteredInfo, Filter
+from .filtering.filter import Filter
 import numpy as np
 
 

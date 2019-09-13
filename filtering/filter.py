@@ -12,10 +12,11 @@ class FilteredInfo(ABC):
 
 class Filter(ABC):
     @abstractmethod
-    def do_recursion_step(self, new_observation: np.array, filtered_info: FilteredInfo):
+    def do_recursion_step(self, new_observation: np.array, filtered_info: FilteredInfo) -> FilteredInfo:
+        """A filter will do a recursion step, i.e. return update filtered information according to a new observation."""
         raise NotImplementedError
 
     @abstractmethod
-    def filter(self, time_series: List):
+    def filter(self, time_series: List) -> List[FilteredInfo]:
         """A filter will implement a filter method."""
         raise NotImplementedError

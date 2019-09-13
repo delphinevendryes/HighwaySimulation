@@ -29,13 +29,12 @@ We get the following mean squared errors for a simulation with 20 cars (20 * 19 
 
 *Noisy MSE mean:* **60.0**; *Noisy MSE standard deviation:* **163.4**
 
-Interestingly, the fact that the variance of the noise varies in <a href="https://www.codecogs.com/eqnedit.php?latex=r^{2}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?r^{2}" title="r^{2}" /></a> can lead to biased results, as this plot illustrates:
+Interestingly, the fact that the variance of the noise varies in <a href="https://www.codecogs.com/eqnedit.php?latex=r^{2}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?r^{2}" title="r^{2}" /></a> can lead to biased results. Indeed, as the variance of the noise increases with distance, one point that is exceptionally far away from the true distance can durably bias the filtering results for a few time steps.
+
+Moreover, as a first approximation, we neglected the dynamics (the transition model is using an identity matrix), which also accounts for bias. See figure:
 
 
 ![Filtered distances with bias](figures/distances_between_two_cars_3.png)
-
-
-Indeed, as the variance of the noise increases with distance, one point that is exceptionally far away from the true distance can durably bias the filtering results for a few time steps.
 
 ### Particle filter
 

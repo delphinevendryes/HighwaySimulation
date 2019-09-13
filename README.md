@@ -23,7 +23,7 @@ After the simulation is done, plot the true relative distance between the cars a
 We also get the following mean squared errors:
 With filtering: 0.24. Without filtering: 1.33.
 
-Interestingly, the fact that the variance of the noise varies in r**2 can lead to biased results.
+Interestingly, the fact that the variance of the noise varies in $r^2$ can lead to biased results.
 
 - Particle filters
 not implemented yet

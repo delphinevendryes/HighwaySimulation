@@ -9,15 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uuid
 
-from typing import List
+from typing import List, Optional
 
-
-# save the animation as an mp4.  This requires ffmpeg or mencoder to be
-# installed.  The extra_args ensure that the x264 codec is used, so that
-# the video can be embedded in html5.  You may need to adjust this for
-# your system: for more information, see
-# http://matplotlib.sourceforge.net/api/animation_api.html
-# ani.save('double_pendulum.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
 
 def get_color(i: int, n: int) -> List[float]:
     return [(i + 1) / n, 0, 0]
@@ -32,15 +25,15 @@ def init_visualization(n_lanes: int, n_cars: int, highway_length: float):
         ylim=(0, highway_length),
     )
     ax.grid()
-    ax.set_xlabel('Lanes')
-    ax.set_ylabel('Highway length (m)')
+    ax.set_xlabel("Lanes")
+    ax.set_ylabel("Highway length (m)")
     ax.set_xticks(np.arange(n_lanes + 1))
     car_points = [ax.plot([], 'o', color=get_color(i, n_cars))[0] for i in range(n_cars)]
     time_str = ax.text(0.02, 0.95, '', transform=ax.transAxes)
     return fig, ax, car_points, time_str
 
 
-def run_sim_once(highway_config):
+def run_sim_once(highway_config, visualize: Optional[bool] = False):
     n_cars = highway_config["n_cars"]
     n_lanes = highway_config["n_lanes"]
     highway_length = highway_config["length"]
@@ -79,7 +72,8 @@ def run_sim_once(highway_config):
     )
 
     # Visualization
-    # fig, ax, points, time_text = init_visualization(n_lanes, n_cars, highway_length)
+    if visualize:
+        fig, ax, points, time_text = init_visualization(n_lanes, n_cars, highway_length)
 
     n_round = 0
     time_elapsed = 0
@@ -102,10 +96,11 @@ def run_sim_once(highway_config):
         highway_navigation_system.step(dt)
         new_round = get_round_from_highway_navigation_systems(highway_navigation_system)
         history.update(new_round)
-        # points, time_text = animate(time_elapsed)
 
-        # plt.draw()
-        # plt.pause(0.01)
+        if visualize:
+            points, time_text = animate(time_elapsed)
+            plt.draw()
+            plt.pause(dt)
 
         # update_scores()
         n_round += 1

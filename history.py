@@ -1,3 +1,4 @@
+"""A history keeps track of past distances between cars."""
 from typing import NamedTuple, Dict
 from .car import CarId, MotionDescriptor
 from .navigation_system import NavigationSystem

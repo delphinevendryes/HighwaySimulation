@@ -35,6 +35,8 @@ Interestingly, the fact that the variance of the noise varies in <a href="https:
 ![Filtered distances with bias](figures/distances_between_two_cars_3.png)
 
 
+Indeed, as the variance of the noise increases with distance, one point that is exceptionally far away from the true distance can durably bias the filtering results for a few time steps.
+
 ### Particle filter
 
 A natural next step is to implement and test a Monte-Carlo method that does not assume a normal distribution with constant variance.

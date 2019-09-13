@@ -25,6 +25,11 @@ With filtering: 0.24. Without filtering: 1.33.
 
 Interestingly, the fact that the variance of the noise varies in $r^2$ can lead to biased results.
 
+
+**Theorem**: The translation $[\![e]\!]$ given by
+\begin{align*}
+f(x)
+\end{align*}
 - Particle filters
 not implemented yet
 
